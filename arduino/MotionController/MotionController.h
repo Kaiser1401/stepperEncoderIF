@@ -14,7 +14,7 @@ struct MotorConfig {
 
     uint8_t enablePin;
 
-    uint16_t pulseWidthUs = 2;
+    uint16_t pulseWidthUs;
 };
 
 struct EncoderConfig {

@@ -4,9 +4,9 @@
 // DEVICE COUNTS
 // ============================================
 
-constexpr int MOTOR_COUNT = 2;
+constexpr int MOTOR_COUNT = 3;
 
-constexpr int ENCODER_COUNT = 2;
+constexpr int ENCODER_COUNT = 3;
 
 // ============================================
 // MOTOR CONFIGURATION
@@ -15,18 +15,24 @@ constexpr int ENCODER_COUNT = 2;
 MotorConfig motors[MOTOR_COUNT] = {
 
     {
-        .dirPin = 2,
-        .stepPin = 3,
-        .enablePin = 4,
-        .pulseWidthUs = 2
+        .dirPin = 8,
+        .stepPin = 9,
+        .enablePin = 2,
+        .pulseWidthUs = 3
     },
 
-    {
-        .dirPin = 5,
-        .stepPin = 6,
-        .enablePin = 7,
-        .pulseWidthUs = 5
-    }
+        {
+        .dirPin = 6,
+        .stepPin = 7,
+        .enablePin = 2,
+        .pulseWidthUs = 3
+    },
+        {
+        .dirPin = 4,
+        .stepPin = 5,
+        .enablePin = 2,
+        .pulseWidthUs = 3
+    },
 };
 
 // ============================================
@@ -36,14 +42,19 @@ MotorConfig motors[MOTOR_COUNT] = {
 EncoderConfig encoders[ENCODER_COUNT] = {
 
     {
-        .pinA = 8,
-        .pinB = 9
+        .pinA = 15,
+        .pinB = 14
     },
 
     {
-        .pinA = 10,
-        .pinB = 11
-    }
+        .pinA = 17,
+        .pinB = 16
+    },
+
+    {
+        .pinA = 19,
+        .pinB = 18
+    },    
 };
 
 // ============================================

@@ -56,31 +56,31 @@ mc = MotionController(
 
 time.sleep(3)
 
-mc.enable_motor(0, True)
+#mc.enable_motor(0, True)
 
 # blocking move
 
-mc.move_motor(
-    motor=0,
-    steps=5000,
-    direction=1,
-    speed_us=1000,
-    waitFor=True
-)
+#mc.move_motor(
+#    motor=0,
+#    steps=5000,
+#    direction=1,
+#    speed_us=1000,
+#    waitFor=True
+#)
 
-print("Move complete")
+#print("Move complete")
 
 # blocking home
 
-mc.home_motor(
-    motor=0,
-    encoder=0,
-    direction=0,
-    speed_us=2000,
-    waitFor=True
-)
+#mc.home_motor(
+#    motor=0,
+#    encoder=0,
+#    direction=0,
+#    speed_us=2000,
+#    waitFor=True
+#)
 
-print("Homing complete")
+#print("Homing complete")
 
 while True:
 
