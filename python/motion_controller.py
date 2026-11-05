@@ -20,6 +20,7 @@ class MotionController:
         motor_done_callback=None,
         homed_callback=None,
         estop_callback=None,
+        frame_callback=None,
         debug=False
     ):
 
@@ -49,6 +50,13 @@ class MotionController:
             encoder_callback_delta
         )
 
+        # called with the values of every
+        # ENC frame (on the worker thread)
+
+        self.frame_callback = (
+            frame_callback
+        )
+
         # serial
 
         self.serial_port = None
@@ -64,6 +72,12 @@ class MotionController:
         self.last_callback_values = []
 
         self.lock = threading.Lock()
+
+        # counts received ENC frames
+
+        self.enc_frame = 0
+
+        self.enc_cond = threading.Condition()
 
         # synchronization
 
@@ -146,11 +160,29 @@ class MotionController:
                     f"Connecting to {port}"
                 )
 
-                self.serial_port = serial.Serial(
-                    port,
-                    self.baudrate,
-                    timeout=0.05
-                )
+                # open with DTR/RTS low: raising DTR
+                # on open triggers the Arduino
+                # auto-reset, which would restart
+                # the firmware and zero the encoders
+
+                sp = serial.Serial()
+
+                sp.port = port
+
+                sp.baudrate = self.baudrate
+
+                sp.timeout = 0.05
+
+                sp.dtr = False
+
+                sp.rts = False
+
+                sp.open()
+
+                self.serial_port = sp
+
+                # only needed if the board did
+                # reset anyway (bootloader delay)
 
                 time.sleep(2)
 
@@ -250,6 +282,18 @@ class MotionController:
                 self.encoder_values = values
 
             self._process_encoder_callbacks()
+
+            if self.frame_callback:
+
+                self.frame_callback(
+                    values.copy()
+                )
+
+            with self.enc_cond:
+
+                self.enc_frame += 1
+
+                self.enc_cond.notify_all()
 
         # move complete
 
@@ -409,11 +453,12 @@ class MotionController:
         timeout=None
     ):
 
-        if waitFor:
+        # always create the event so non-blocking
+        # callers can wait on it later
 
-            event = self._create_wait_event(
-                f"DONE_{motor}"
-            )
+        event = self._create_wait_event(
+            f"DONE_{motor}"
+        )
 
         self._send(
             f"MV,{motor},{steps},"
@@ -423,6 +468,8 @@ class MotionController:
         if waitFor:
 
             return event.wait(timeout)
+
+        return event
 
     def home_motor(
         self,
@@ -492,6 +539,24 @@ class MotionController:
 
         self._send("RESET")
 
+    def wait_encoder_update(
+        self,
+        timeout=1.0
+    ):
+        # wait for the next ENC frame, i.e.
+        # values sampled after everything
+        # received so far (e.g. a DONE).
+        # do NOT call from a callback.
+
+        with self.enc_cond:
+
+            start = self.enc_frame
+
+            return self.enc_cond.wait_for(
+                lambda: self.enc_frame > start,
+                timeout
+            )
+
     def get_encoders(self):
 
         with self.lock:
@@ -503,7 +568,34 @@ class MotionController:
 
     def close(self):
 
+        # stop the worker, then send whatever
+        # is still queued (e.g. stop commands)
+        # before closing the port
+
         self.running = False
+
+        self.thread.join(timeout=2)
+
+        if self.serial_port and self.connected:
+
+            try:
+
+                while not self.tx_queue.empty():
+
+                    cmd = self.tx_queue.get()
+
+                    self.serial_port.write(
+                        (cmd + "\n").encode()
+                    )
+
+                self.serial_port.flush()
+
+            except Exception as e:
+
+                self._debug(
+                    "Flush on close failed:",
+                    e
+                )
 
         if self.serial_port:
 
