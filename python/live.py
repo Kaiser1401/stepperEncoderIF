@@ -1,8 +1,12 @@
 from motion_controller import MotionController
 
 import time
+from datetime import datetime
 import random
 import math3d as m3d
+
+
+PANELIF = None
 
 def encoder_changed(
     encoder,
@@ -10,20 +14,25 @@ def encoder_changed(
     delta
 ):
 
-    print(
-        f"Encoder {encoder}: "
-        f"{value} "
-        f"(delta={delta})"
-    )
+    msg = f"E {encoder}: {value} (delta={delta})"
+    log(msg)
 
 
 def motor_done(
     motor
 ):
+    value = PANELIF.get(motor)
+    msg = f"M {motor}: {value}"
+    log(msg)
 
-    print(
-        f"Motor {motor} done"
-    )
+def log(msg):
+
+    current_timestamp = time.time()
+    dt = datetime.fromtimestamp(current_timestamp)
+    readable_time = dt.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+
+    print(f"{readable_time}  {msg}")
+
 
 
 class PanelInterface:
@@ -37,6 +46,9 @@ class PanelInterface:
         debug=False)
 
         time.sleep(0.3)
+
+        global PANELIF
+        PANELIF = self
 
     def set(self,m,val,speed=1000,waitFor=True):
         val_e = self.mc.get_encoders()[m]
